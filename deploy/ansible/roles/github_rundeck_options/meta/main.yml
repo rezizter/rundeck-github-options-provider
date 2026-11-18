@@ -1,0 +1,22 @@
+---
+galaxy_info:
+  role_name: github_rundeck_options
+  author: rezizter
+  description: Deploys and configures the Rundeck GitHub Organization Options Go service.
+  license: MIT
+  min_ansible_version: "2.14"
+  platforms:
+    - name: Amazon
+      versions:
+        - "2023"
+    - name: EL
+      versions:
+        - "9"
+    - name: Ubuntu
+      versions:
+        - jammy
+        - noble
+    - name: Debian
+      versions:
+        - bookworm
+dependencies: []
