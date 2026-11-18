@@ -122,10 +122,10 @@ func (g *GitHubClient) fetchAllPages(ctx context.Context, initialURL string, dec
 			return fmt.Errorf("executing request: %w", err)
 		}
 
-                body, readErr := io.ReadAll(resp.Body)
-                if closeErr := resp.Body.Close(); closeErr != nil {
-                        readErr = errors.Join(readErr, fmt.Errorf("closing response body: %w", closeErr))
-                }
+		body, readErr := io.ReadAll(resp.Body)
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			readErr = errors.Join(readErr, fmt.Errorf("closing response body: %w", closeErr))
+		}
 
 		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 			return fmt.Errorf("github api error (%d): %s", resp.StatusCode, string(body))
