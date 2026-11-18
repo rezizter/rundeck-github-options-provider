@@ -78,6 +78,15 @@ Settings are loaded in the following order (later sources override earlier ones)
 | Listen Address      | listen_addr	  | -			 | -addr    |
 | Cache Refresh TTL   | cache_ttl_seconds | -			 | -ttl	    |
 
+## Deploying with the Ansible Role
+The role at <ark>deploy/ansible/roles/github_rundeck_options</mark> installs the binary to /usr/local/bin/github-rundeck-options, creates a non-privileged rundeck-gh system user, locks down /etc/github-rundeck-options/config.json (0640), optionally opens firewalld or ufw, and configures a hardened systemd unit.
+
+### Supported Operating Systems
+* Amazon Linux 2023
+* Rocky Linux 9 (and RHEL / AlmaLinux 9)
+* Ubuntu 22.04 (Jammy) & Ubuntu 24.04 (Noble)
+* Debian 12 (Bookworm)
+
 ## HTTP Endpoints
 
 | Method  | Path              | Description 																     |
