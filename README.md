@@ -1,3 +1,7 @@
+[![Go CI](https://github.com/rezizter/rundeck-github-options-provider/actions/workflows/ci.yml/badge.svg)](https://github.com/rezizter/rundeck-github-options-provider/actions/workflows/ci.yml)
+[![Latest Release](https://img.shields.io/badge/Release-latest-brightgreen.svg)](https://github.com/rezizter/rundeck-github-options-provider/releases/latest)
+[![GO version](https://img.shields.io/github/go-mod/go-version/rezizter/rundeck-github-options-provider)](https://go.dev/doc/go1.25)
+[![Repository License](https://img.shields.io/github/license/rezizter/rundeck-github-options-provider)](https://github.com/rezizter/rundeck-github-options-provider?tab=GPL-3.0-1-ov-file)
 # Rundeck GitHub Options Provider
 
 A zero-dependency Go service that periodically fetches and caches members and teams from a GitHub organization, serving them over HTTP in the exact JSON format expected by Rundeck's **Remote URL** job options provider.
