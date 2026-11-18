@@ -44,3 +44,17 @@ A zero-dependency Go service that periodically fetches and caches members and te
    ./github-rundeck-options -config config.json
    ```
 
+You may also start the service using flags:
+   ```bash
+   ./github-rundeck-options -token ghp_xxx -org my-org -addr :8080 -ttl 600
+   ```
+
+## Configuration Precedence
+Settings are loaded in the following order (later sources override earlier ones):
+
+| Setting	      | Key    		  | Environment Variable | CLI Flag |
+| :------------------ | :---------------: | :------------------: | -------: |
+| GitHub Token 	      | github_token	  | GITHUB_TOKEN	 | -token   |
+| GitHub Organization | github_org	  | GITHUB_ORG		 | -org	    |
+| Listen Address      | listen_addr	  | -			 | -addr    |
+| Cache Refresh TTL   | cache_ttl_seconds | -			 | -ttl	    |
