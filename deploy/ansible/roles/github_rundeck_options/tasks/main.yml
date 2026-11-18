@@ -1,0 +1,107 @@
+---
+- name: Load OS-specific variables
+  ansible.builtin.include_vars: "{{ item }}"
+  with_first_found:
+    - "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml"
+    - "{{ ansible_os_family }}.yml"
+
+- name: Validate required variables
+  ansible.builtin.assert:
+    that:
+      - github_rundeck_options_token | length > 0
+      - github_rundeck_options_org | length > 0
+      - (github_rundeck_options_binary_local_path | length > 0) or (github_rundeck_options_binary_url | length > 0)
+    fail_msg: "github_rundeck_options_token, github_rundeck_options_org, and either binary_local_path or binary_url must be set."
+
+- name: Create dedicated system group
+  ansible.builtin.group:
+    name: "{{ github_rundeck_options_group }}"
+    system: true
+    state: present
+
+- name: Create dedicated system user
+  ansible.builtin.user:
+    name: "{{ github_rundeck_options_user }}"
+    group: "{{ github_rundeck_options_group }}"
+    shell: "{{ github_rundeck_options_nologin_shell }}"
+    system: true
+    create_home: false
+    state: present
+
+- name: Copy pre-built binary from controller
+  ansible.builtin.copy:
+    src: "{{ github_rundeck_options_binary_local_path }}"
+    dest: "{{ github_rundeck_options_bin_path }}"
+    owner: root
+    group: root
+    mode: "0755"
+  when: github_rundeck_options_binary_local_path | length > 0
+  notify: Restart github-rundeck-options
+
+- name: Download binary from remote URL
+  ansible.builtin.get_url:
+    url: "{{ github_rundeck_options_binary_url }}"
+    dest: "{{ github_rundeck_options_bin_path }}"
+    checksum: "{{ github_rundeck_options_binary_checksum | default(omit, true) }}"
+    owner: root
+    group: root
+    mode: "0755"
+  when:
+    - github_rundeck_options_binary_local_path | length == 0
+    - github_rundeck_options_binary_url | length > 0
+  notify: Restart github-rundeck-options
+
+- name: Create restricted configuration directory
+  ansible.builtin.file:
+    path: "{{ github_rundeck_options_config_dir }}"
+    state: directory
+    owner: root
+    group: "{{ github_rundeck_options_group }}"
+    mode: "0750"
+
+- name: Deploy config.json
+  ansible.builtin.template:
+    src: config.json.j2
+    dest: "{{ github_rundeck_options_config_path }}"
+    owner: root
+    group: "{{ github_rundeck_options_group }}"
+    mode: "0640"
+  no_log: true
+  notify: Restart github-rundeck-options
+
+- name: Deploy systemd service unit
+  ansible.builtin.template:
+    src: github-rundeck-options.service.j2
+    dest: /etc/systemd/system/github-rundeck-options.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - Reload systemd
+    - Restart github-rundeck-options
+
+- name: Open firewalld port on RedHat family
+  ansible.posix.firewalld:
+    port: "{{ github_rundeck_options_port }}/tcp"
+    permanent: true
+    immediate: true
+    state: enabled
+  when:
+    - github_rundeck_options_manage_firewall | bool
+    - ansible_os_family == "RedHat"
+
+- name: Open UFW port on Debian family
+  community.general.ufw:
+    rule: allow
+    port: "{{ github_rundeck_options_port | string }}"
+    proto: tcp
+  when:
+    - github_rundeck_options_manage_firewall | bool
+    - ansible_os_family == "Debian"
+
+- name: Ensure systemd unit is enabled and running
+  ansible.builtin.systemd:
+    name: github-rundeck-options
+    enabled: "{{ github_rundeck_options_service_enabled }}"
+    state: "{{ github_rundeck_options_service_state }}"
+    daemon_reload: true
