@@ -88,3 +88,73 @@ Set the radio button for <mark>Restrictions</mark> to "Enforced from Allowed Val
 ![image](./img/rundeck_options_5.png)
 6. When running the job, Rundeck will render a searchable dropdown populated from your cache.
 ![image](./img/rundeck_options_6.png)
+
+## Systemd Script
+To run the Go service as a background daemon on Red Hat-based distributions (RHEL, Rocky Linux, AlmaLinux, Fedora), configure a systemd unit file along with a dedicated non-privileged system user and restricted configuration file permissions.
+
+1. Build and Install the Binary & Config:
+```bash
+# Build the binary
+go build -o github-rundeck-options main.go
+sudo install -m 0755 github-rundeck-options /usr/local/bin/github-rundeck-options
+
+# Create a dedicated system user with no login shell
+sudo useradd --system --no-create-home --shell /sbin/nologin rundeck-gh
+
+# Create config directory and restrict permissions (protects github_token)
+sudo mkdir -p /etc/github-rundeck-options
+sudo cp config.json /etc/github-rundeck-options/config.json
+sudo chown -R root:rundeck-gh /etc/github-rundeck-options
+sudo chmod 0750 /etc/github-rundeck-options
+sudo chmod 0640 /etc/github-rundeck-options/config.json
+```
+
+2. Systemd Unit File:
+Create <mark>/etc/systemd/system/github-rundeck-options.service</mark> with hardened security directives suited for RHEL-based systems:
+```bash
+[Unit]
+Description=Rundeck GitHub Organization Options Provider
+Documentation=https://github.com/your-org/github-rundeck-options
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=rundeck-gh
+Group=rundeck-gh
+ExecStart=/usr/local/bin/github-rundeck-options -config /etc/github-rundeck-options/config.json
+Restart=on-failure
+RestartSec=5s
+
+# Hardening & Sandboxing
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+RestrictRealtime=yes
+
+# Logging to journald
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=github-rundeck-options
+
+[Install]
+WantedBy=multi-user.target
+```
+
+3. Enable, Start, and Configure Firewalld:
+```bash
+# Reload systemd and start the service
+sudo systemctl daemon-reload
+sudo systemctl enable --now github-rundeck-options
+
+# Verify service status and logs
+sudo systemctl status github-rundeck-options
+sudo journalctl -u github-rundeck-options -f
+
+# (Optional) Allow port 8080 through firewalld if Rundeck is on another server
+sudo firewall-cmd --permanent --add-port=8080/tcp
+sudo firewall-cmd --reload
+```
