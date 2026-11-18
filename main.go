@@ -187,3 +187,207 @@ func (g *GitHubClient) FetchTeams(ctx context.Context) ([]RundeckOption, error) 
 			return err
 		}
 		for _, t := range page {
+			options = append(options, RundeckOption{
+				Name:  t.Name, // Human-readable team name shown in Rundeck UI
+				Value: t.Slug, // URL-safe slug passed to Rundeck job steps
+			})
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	sort.Slice(options, func(i, j int) bool {
+		return options[i].Name < options[j].Name
+	})
+	return options, nil
+}
+
+func loadConfig() (Config, error) {
+	cfg := Config{
+		ListenAddr:      ":8080",
+		CacheTTLSeconds: 300,
+	}
+
+	var configPath string
+	var flagToken string
+	var flagOrg string
+	var flagAddr string
+	var flagTTL int
+
+	flag.StringVar(&configPath, "config", "config.json", "Path to JSON config file")
+	flag.StringVar(&flagToken, "token", "", "GitHub Personal Access Token (overrides config & env)")
+	flag.StringVar(&flagOrg, "org", "", "GitHub Organization login (overrides config & env)")
+	flag.StringVar(&flagAddr, "addr", "", "HTTP listen address (overrides config)")
+	flag.IntVar(&flagTTL, "ttl", 0, "Cache refresh interval in seconds (overrides config)")
+	flag.Parse()
+
+	// 1. Load from config file if present
+	if data, err := os.ReadFile(configPath); err == nil {
+		if err := json.Unmarshal(data, &cfg); err != nil {
+			return cfg, fmt.Errorf("invalid config file %s: %w", configPath, err)
+		}
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return cfg, fmt.Errorf("reading config file %s: %w", configPath, err)
+	}
+
+	// 2. Override with environment variables if set
+	if envToken := os.Getenv("GITHUB_TOKEN"); envToken != "" {
+		cfg.GitHubToken = envToken
+	}
+	if envOrg := os.Getenv("GITHUB_ORG"); envOrg != "" {
+		cfg.GitHubOrg = envOrg
+	}
+
+	// 3. Override with CLI flags if explicitly provided
+	if flagToken != "" {
+		cfg.GitHubToken = flagToken
+	}
+	if flagOrg != "" {
+		cfg.GitHubOrg = flagOrg
+	}
+	if flagAddr != "" {
+		cfg.ListenAddr = flagAddr
+	}
+	if flagTTL > 0 {
+		cfg.CacheTTLSeconds = flagTTL
+	}
+
+	if cfg.GitHubToken == "" || cfg.GitHubOrg == "" {
+		return cfg, errors.New("github_token and github_org are required (via -config, flags, or env)")
+	}
+
+	return cfg, nil
+}
+
+func refreshCache(ctx context.Context, client *GitHubClient, cache *Cache) {
+	reqCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	members, err := client.FetchMembers(reqCtx)
+	if err != nil {
+		log.Printf("ERROR fetching members: %v", err)
+		cache.SetError(err)
+		return
+	}
+
+	teams, err := client.FetchTeams(reqCtx)
+	if err != nil {
+		log.Printf("ERROR fetching teams: %v", err)
+		cache.SetError(err)
+		return
+	}
+
+	cache.Update(members, teams)
+	log.Printf("Cache refreshed: %d members, %d teams", len(members), len(teams))
+}
+
+func writeJSON(w http.ResponseWriter, status int, payload any) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(status)
+	if err := json.NewEncoder(w).Encode(payload); err != nil {
+		log.Printf("ERROR encoding JSON response: %v", err)
+	}
+}
+
+func main() {
+	cfg, err := loadConfig()
+	if err != nil {
+		log.Fatalf("Configuration error: %v", err)
+	}
+
+	client := &GitHubClient{
+		token:      cfg.GitHubToken,
+		org:        cfg.GitHubOrg,
+		httpClient: &http.Client{Timeout: 15 * time.Second},
+	}
+	cache := &Cache{}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Perform initial synchronous fetch before accepting traffic
+	refreshCache(ctx, client, cache)
+
+	// Background refresh loop
+	ticker := time.NewTicker(time.Duration(cfg.CacheTTLSeconds) * time.Second)
+	defer ticker.Stop()
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				refreshCache(ctx, client, cache)
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
+	mux := http.NewServeMux()
+
+	// Rundeck Option Endpoint: Organization Members
+	mux.HandleFunc("GET /options/members", func(w http.ResponseWriter, r *http.Request) {
+		members, updated := cache.GetMembers()
+		if updated.IsZero() {
+			writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "cache not yet populated"})
+			return
+		}
+		if members == nil {
+			members = []RundeckOption{}
+		}
+		writeJSON(w, http.StatusOK, members)
+	})
+
+	// Rundeck Option Endpoint: Organization Teams
+	mux.HandleFunc("GET /options/teams", func(w http.ResponseWriter, r *http.Request) {
+		teams, updated := cache.GetTeams()
+		if updated.IsZero() {
+			writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "cache not yet populated"})
+			return
+		}
+		if teams == nil {
+			teams = []RundeckOption{}
+		}
+		writeJSON(w, http.StatusOK, teams)
+	})
+
+	// Manual force-refresh endpoint
+	mux.HandleFunc("POST /refresh", func(w http.ResponseWriter, r *http.Request) {
+		refreshCache(r.Context(), client, cache)
+		writeJSON(w, http.StatusOK, cache.Stats())
+	})
+
+	// Health & Cache Metrics endpoint (JSON)
+	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, http.StatusOK, cache.Stats())
+	})
+
+	// Prometheus-compatible metrics endpoint
+	mux.HandleFunc("GET /metrics", func(w http.ResponseWriter, r *http.Request) {
+		stats := cache.Stats()
+		w.Header().Set("Content-Type", "text/plain; version=0.0.4")
+
+		var buf bytes.Buffer
+		_, _ = fmt.Fprintf(&buf, "# HELP github_cache_members_total Number of cached GitHub org members\n")
+		_, _ = fmt.Fprintf(&buf, "# TYPE github_cache_members_total gauge\n")
+		_, _ = fmt.Fprintf(&buf, "github_cache_members_total{org=%q} %d\n", cfg.GitHubOrg, stats["member_count"])
+		_, _ = fmt.Fprintf(&buf, "# HELP github_cache_teams_total Number of cached GitHub org teams\n")
+		_, _ = fmt.Fprintf(&buf, "# TYPE github_cache_teams_total gauge\n")
+		_, _ = fmt.Fprintf(&buf, "github_cache_teams_total{org=%q} %d\n", cfg.GitHubOrg, stats["team_count"])
+		if t, ok := stats["last_updated"].(time.Time); ok && !t.IsZero() {
+			_, _ = fmt.Fprintf(&buf, "# HELP github_cache_last_updated_timestamp_seconds Unix timestamp of last successful refresh\n")
+			_, _ = fmt.Fprintf(&buf, "# TYPE github_cache_last_updated_timestamp_seconds gauge\n")
+			_, _ = fmt.Fprintf(&buf, "github_cache_last_updated_timestamp_seconds{org=%q} %d\n", cfg.GitHubOrg, t.Unix())
+		}
+
+		if _, err := w.Write(buf.Bytes()); err != nil {
+			log.Printf("ERROR writing metrics response: %v", err)
+		}
+	})
+
+	log.Printf("Serving Rundeck GitHub options for org %q on %s", cfg.GitHubOrg, cfg.ListenAddr)
+	if err := http.ListenAndServe(cfg.ListenAddr, mux); err != nil {
+		log.Fatalf("HTTP server failed: %v", err)
+	}
+}
