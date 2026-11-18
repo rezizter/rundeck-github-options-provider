@@ -13,8 +13,21 @@ A zero-dependency Go service that periodically fetches and caches members and te
 - **Thread-Safe In-Memory Cache:** Serves concurrent Rundeck UI requests instantly without hitting GitHub API rate limits, refreshing in the background on a configurable TTL.
 - **Rundeck-Native Formatting:** Returns `[{"name": "...", "value": "..."}]` with `application/json` headers—mapping human-readable team names to URL-safe team slugs.
 - **Observability Included:** Exposes both a JSON `/health` endpoint and a Prometheus-compatible `/metrics` endpoint.
+- **Multi-OS Ansible Deployment:** Includes a hardened `systemd` Ansible role tested with Molecule & Testinfra across **Amazon Linux 2023**, **Rocky Linux 9**, **Ubuntu 22.04**, **Ubuntu 24.04**, and **Debian 12**.
 
 ---
+
+## Repository Structure
+
+```text
+.
+├── main.go                              # Go HTTP service & GitHub API cache
+├── main_test.go                         # Unit & mock pagination tests
+└── deploy/
+    └── ansible/
+        ├── requirements.txt             # Ansible, ansible-lint, Molecule & Testinfra deps
+        └── roles/
+            └── github_rundeck_options/  # Multi-OS systemd deployment role + Molecule suite
 
 ## Prerequisites
 
@@ -22,6 +35,7 @@ A zero-dependency Go service that periodically fetches and caches members and te
 - **GitHub Personal Access Token (PAT):**
   - Classic PAT: Requires the `read:org` scope (to read private organization members and teams).
   - Fine-grained PAT: Requires **Organization permissions → Members (Read-only)**.
+- **Ansible 2.14+** (if deploying via the included Ansible role)
 
 ---
 
@@ -54,6 +68,7 @@ You may also start the service using flags:
    ```
 
 ## Configuration Precedence
+
 Settings are loaded in the following order (later sources override earlier ones):
 
 | Setting	      | Key    		  | Environment Variable | CLI Flag |
@@ -74,6 +89,7 @@ Settings are loaded in the following order (later sources override earlier ones)
 | GET	  | /refresh	      | Forces an immediate out-of-band cache refresh from GitHub.										     |
 
 ## Setting Up the Rundeck Remote Options Plugin
+
 Rundeck natively supports dynamic dropdowns via its built-in Remote URL option provider—no third-party .jar installation is required.
 
 1. Open your Rundeck project and navigate to Jobs → Edit Job (or New Job).
@@ -94,6 +110,7 @@ Set the radio button for <mark>Restrictions</mark> to "Enforced from Allowed Val
 ![image](./img/rundeck_options_6.png)
 
 ## Systemd Script
+
 To run the Go service as a background daemon on Red Hat-based distributions (RHEL, Rocky Linux, AlmaLinux, Fedora), configure a systemd unit file along with a dedicated non-privileged system user and restricted configuration file permissions.
 
 1. Build and Install the Binary & Config:
