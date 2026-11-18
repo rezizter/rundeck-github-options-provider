@@ -1,0 +1,3 @@
+---
+github_rundeck_options_nologin_shell: "/sbin/nologin"
+github_rundeck_options_firewall_pkg: "firewalld"
