@@ -36,7 +36,7 @@ A zero-dependency Go service that periodically fetches and caches members and te
      "github_org": "your-organization-name",
      "listen_addr": ":8080",
      "cache_ttl_seconds": 300
-}
+   }
    ```
 
 3. **Start the service:**
