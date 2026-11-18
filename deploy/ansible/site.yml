@@ -1,0 +1,39 @@
+---
+- name: Deploy Rundeck GitHub Options Provider
+  hosts: rundeck_helpers
+  become: true
+
+  vars:
+    arch_map:
+      x86_64: amd64
+      aarch64: arm64
+      arm64: arm64
+    target_goarch: "{{ arch_map[ansible_architecture] | default('amd64') }}"
+    local_binary_path: "{{ playbook_dir }}/../../dist/github-rundeck-options-linux-{{ target_goarch }}"
+
+  pre_tasks:
+    - name: Cross-compile static Linux binary on Ansible controller
+      ansible.builtin.command:
+        cmd: >
+          go build -trimpath -ldflags="-s -w"
+          -o {{ local_binary_path }}
+          main.go
+        chdir: "{{ playbook_dir }}/../.."
+      environment:
+        CGO_ENABLED: "0"
+        GOOS: "linux"
+        GOARCH: "{{ target_goarch }}"
+      delegate_to: localhost
+      become: false
+      run_once: true
+      changed_when: true
+
+  roles:
+    - role: github_rundeck_options
+      vars:
+        github_rundeck_options_binary_local_path: "{{ local_binary_path }}"
+        github_rundeck_options_token: "{{ vault_github_token }}"
+        github_rundeck_options_org: "my-github-org"
+        github_rundeck_options_listen_addr: "0.0.0.0:8080"
+        github_rundeck_options_cache_ttl_seconds: 300
+        github_rundeck_options_manage_firewall: true
