@@ -73,12 +73,18 @@ Settings are loaded in the following order (later sources override earlier ones)
 Rundeck natively supports dynamic dropdowns via its built-in Remote URL option provider—no third-party .jar installation is required.
 
 1. Open your Rundeck project and navigate to Jobs → Edit Job (or New Job).
+![image](./img/rundeck_options_1)
 2. Go to the Workflow tab and click + Add an option at the top.
+![image](./img/rundeck_options_2)
 3. Set Option Type to Text, enter an Option Name (e.g., github_team or github_member), and optionally provide a Default Value.
+![image](./img/rundeck_options_3)
 4. Scroll down to Allowed Values, select the Remote URL radio button, and enter the service endpoint URL:
 For teams: http://<service-host>:8080/options/teams
 For members: http://<service-host>:8080/options/members
 Leave Authentication Type blank unless you place the service behind an authenticating reverse proxy.
 Set the radio button for <mark>Restrictions</mark> to "Enforced from Allowed Values"
+![image](./img/rundeck_options_4)
 5. Click Save on the option, then Save the job. 
+![image](./img/rundeck_options_5)
 6. When running the job, Rundeck will render a searchable dropdown populated from your cache.
+![image](./img/rundeck_options_6)
