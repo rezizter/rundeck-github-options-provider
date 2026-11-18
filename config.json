@@ -1,0 +1,6 @@
+{
+  "github_token": "ghp_your_personal_access_token",
+  "github_org": "your-organization-name",
+  "listen_addr": ":8080",
+  "cache_ttl_seconds": 300
+}
