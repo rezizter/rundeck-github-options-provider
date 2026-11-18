@@ -68,3 +68,15 @@ Settings are loaded in the following order (later sources override earlier ones)
 | GET	  | /health	      | Returns JSON status, cached item counts, last refresh timestamp, and any sync errors.							     |
 | GET	  | /metrics	      | Exposes Prometheus metrics (<mark>github_cache_members_total, github_cache_teams_total, github_cache_last_updated_timestamp_seconds</mark>). |
 | GET	  | /refresh	      | Forces an immediate out-of-band cache refresh from GitHub.										     |
+
+## Setting Up the Rundeck Remote Options Plugin
+Rundeck natively supports dynamic dropdowns via its built-in Remote URL option provider—no third-party .jar installation is required.
+
+1. Open your Rundeck project and navigate to Jobs → Edit Job (or New Job).
+2. Go to the Workflow tab and click + Add an option at the top.
+3. Set Option Type to Text, enter an Option Name (e.g., github_team or github_member), and optionally provide a Default Value.
+4. Scroll down to Allowed Values, select the Remote URL radio button, and enter the service endpoint URL:
+For teams: http://<service-host>:8080/options/teams
+For members: http://<service-host>:8080/options/members
+Leave Authentication Type blank unless you place the service behind an authenticating reverse proxy.
+5. Click Save on the option, then Save the job. When running the job, Rundeck will render a searchable dropdown populated from your cache.
