@@ -58,3 +58,13 @@ Settings are loaded in the following order (later sources override earlier ones)
 | GitHub Organization | github_org	  | GITHUB_ORG		 | -org	    |
 | Listen Address      | listen_addr	  | -			 | -addr    |
 | Cache Refresh TTL   | cache_ttl_seconds | -			 | -ttl	    |
+
+## HTTP Endpoints
+
+| Method  | Path              | Description 																     |
+| :------ | :---------------: | -------------------------------------------------------------------------------------------------------------------------------------------: |
+| GET	  | /options/members  | Returns cached organization members (<mark>[{"name": "login", "value": "login"}]</mark>). 						     |
+| GET	  | /options/teams    | Returns cached organization teams (<mark>[{"name": "Team Name", "value": "team-slug"}]</mark>).						     |
+| GET	  | /health	      | Returns JSON status, cached item counts, last refresh timestamp, and any sync errors.							     |
+| GET	  | /metrics	      | Exposes Prometheus metrics (<mark>github_cache_members_total, github_cache_teams_total, github_cache_last_updated_timestamp_seconds</mark>). |
+| GET	  | /refresh	      | Forces an immediate out-of-band cache refresh from GitHub.										     |
