@@ -36,20 +36,26 @@ func TestGitHubClientPaginationAndSorting(t *testing.T) {
 		case "/orgs/test-org/members":
 			if r.URL.Query().Get("page") == "2" {
 				w.Header().Set("Content-Type", "application/json")
-				w.Write([]byte(`[{"login": "alice"}]`))
+				if _, err := w.Write([]byte(`[{"login": "alice"}]`)); err != nil {
+					t.Errorf("failed writing mock response: %v", err)
+				}
 				return
 			}
 			// Page 1 returns RFC 5988 Link header pointing to page 2
 			w.Header().Set("Content-Type", "application/json")
 			w.Header().Set("Link", `<`+mockServer.URL+`/orgs/test-org/members?page=2>; rel="next"`)
-			w.Write([]byte(`[{"login": "charlie"}, {"login": "bob"}]`))
+			if _, err := w.Write([]byte(`[{"login": "charlie"}, {"login": "bob"}]`)); err != nil {
+				t.Errorf("failed writing mock response: %v", err)
+			}
 
 		case "/orgs/test-org/teams":
 			w.Header().Set("Content-Type", "application/json")
-			w.Write([]byte(`[
+			if _, err := w.Write([]byte(`[
 				{"name": "Platform Engineering", "slug": "platform-eng"},
 				{"name": "Database Admins", "slug": "db-admins"}
-			]`))
+			]`)); err != nil {
+				t.Errorf("failed writing mock response: %v", err)
+			}
 
 		default:
 			w.WriteHeader(http.StatusNotFound)
@@ -126,7 +132,6 @@ func TestLoadConfigFromFileAndEnv(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Verify JSON unmarshaling into Config struct
 	var cfg Config
 	data, err := os.ReadFile(cfgPath)
 	if err != nil {
