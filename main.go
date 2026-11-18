@@ -363,16 +363,22 @@ func main() {
 	mux.HandleFunc("GET /metrics", func(w http.ResponseWriter, r *http.Request) {
 		stats := cache.Stats()
 		w.Header().Set("Content-Type", "text/plain; version=0.0.4")
-		fmt.Fprintf(w, "# HELP github_cache_members_total Number of cached GitHub org members\n")
-		fmt.Fprintf(w, "# TYPE github_cache_members_total gauge\n")
-		fmt.Fprintf(w, "github_cache_members_total{org=%q} %d\n", cfg.GitHubOrg, stats["member_count"])
-		fmt.Fprintf(w, "# HELP github_cache_teams_total Number of cached GitHub org teams\n")
-		fmt.Fprintf(w, "# TYPE github_cache_teams_total gauge\n")
-		fmt.Fprintf(w, "github_cache_teams_total{org=%q} %d\n", cfg.GitHubOrg, stats["team_count"])
+
+		var buf bytes.Buffer
+		_, _ = fmt.Fprintf(&buf, "# HELP github_cache_members_total Number of cached GitHub org members\n")
+		_, _ = fmt.Fprintf(&buf, "# TYPE github_cache_members_total gauge\n")
+		_, _ = fmt.Fprintf(&buf, "github_cache_members_total{org=%q} %d\n", cfg.GitHubOrg, stats["member_count"])
+		_, _ = fmt.Fprintf(&buf, "# HELP github_cache_teams_total Number of cached GitHub org teams\n")
+		_, _ = fmt.Fprintf(&buf, "# TYPE github_cache_teams_total gauge\n")
+		_, _ = fmt.Fprintf(&buf, "github_cache_teams_total{org=%q} %d\n", cfg.GitHubOrg, stats["team_count"])
 		if t, ok := stats["last_updated"].(time.Time); ok && !t.IsZero() {
-			fmt.Fprintf(w, "# HELP github_cache_last_updated_timestamp_seconds Unix timestamp of last successful refresh\n")
-			fmt.Fprintf(w, "# TYPE github_cache_last_updated_timestamp_seconds gauge\n")
-			fmt.Fprintf(w, "github_cache_last_updated_timestamp_seconds{org=%q} %d\n", cfg.GitHubOrg, t.Unix())
+			_, _ = fmt.Fprintf(&buf, "# HELP github_cache_last_updated_timestamp_seconds Unix timestamp of last successful refresh\n")
+			_, _ = fmt.Fprintf(&buf, "# TYPE github_cache_last_updated_timestamp_seconds gauge\n")
+			_, _ = fmt.Fprintf(&buf, "github_cache_last_updated_timestamp_seconds{org=%q} %d\n", cfg.GitHubOrg, t.Unix())
+		}
+
+		if _, err := w.Write(buf.Bytes()); err != nil {
+			log.Printf("ERROR writing metrics response: %v", err)
 		}
 	})
 
