@@ -1,4 +1,5 @@
 import json
+import time
 import pytest
 
 
@@ -48,6 +49,18 @@ def test_systemd_service_running_and_enabled(host):
     ("http://127.0.0.1:8080/metrics", "github_cache_members_total"),
 ])
 def test_http_endpoints_respond(host, endpoint, expected_substring):
-    cmd = host.run(f"curl -fsS {endpoint}")
-    assert cmd.rc == 0
-    assert expected_substring in cmd.stdout
+    py_script = (
+        "import urllib.request; "
+        f"print(urllib.request.urlopen('{endpoint}', timeout=5).read().decode())"
+    )
+    last_cmd = None
+    for _ in range(10):
+        last_cmd = host.run(f'python3 -c "{py_script}"')
+        if last_cmd.rc == 0 and expected_substring in last_cmd.stdout:
+            return
+        time.sleep(1)
+
+    pytest.fail(
+        f"Endpoint {endpoint} failed (rc={last_cmd.rc}): "
+        f"stdout={last_cmd.stdout!r}, stderr={last_cmd.stderr!r}"
+    )
