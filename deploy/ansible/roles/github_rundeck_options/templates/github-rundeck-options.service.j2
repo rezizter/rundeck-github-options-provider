@@ -1,0 +1,28 @@
+[Unit]
+Description=Rundeck GitHub Organization Options Provider
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User={{ github_rundeck_options_user }}
+Group={{ github_rundeck_options_group }}
+ExecStart={{ github_rundeck_options_bin_path }} -config {{ github_rundeck_options_config_path }}
+Restart=on-failure
+RestartSec=5s
+
+# Security Hardening
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+RestrictRealtime=yes
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=github-rundeck-options
+
+[Install]
+WantedBy=multi-user.target
