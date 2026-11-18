@@ -79,4 +79,6 @@ Rundeck natively supports dynamic dropdowns via its built-in Remote URL option p
 For teams: http://<service-host>:8080/options/teams
 For members: http://<service-host>:8080/options/members
 Leave Authentication Type blank unless you place the service behind an authenticating reverse proxy.
-5. Click Save on the option, then Save the job. When running the job, Rundeck will render a searchable dropdown populated from your cache.
+Set the radio button for <mark>Restrictions</mark> to "Enforced from Allowed Values"
+5. Click Save on the option, then Save the job. 
+6. When running the job, Rundeck will render a searchable dropdown populated from your cache.
