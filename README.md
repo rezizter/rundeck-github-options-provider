@@ -27,4 +27,20 @@ A zero-dependency Go service that periodically fetches and caches members and te
    ```bash
    go mod init github-rundeck-options
    go build -o github-rundeck-options main.go
+   ```
+
+2. **Create a <mark>config.json</mark> file:**
+   ```bash
+   {
+     "github_token": "ghp_your_personal_access_token",
+     "github_org": "your-organization-name",
+     "listen_addr": ":8080",
+     "cache_ttl_seconds": 300
+}
+   ```
+
+3. **Start the service:**
+   ```bash
+   ./github-rundeck-options -config config.json
+   ```
 
