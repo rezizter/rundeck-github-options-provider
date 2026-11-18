@@ -1,0 +1,10 @@
+---
+- name: Reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Restart github-rundeck-options
+  ansible.builtin.systemd:
+    name: github-rundeck-options
+    state: restarted
+  when: github_rundeck_options_service_state == "started"
