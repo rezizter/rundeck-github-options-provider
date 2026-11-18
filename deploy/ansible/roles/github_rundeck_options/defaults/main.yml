@@ -1,0 +1,26 @@
+---
+github_rundeck_options_user: "rundeck-gh"
+github_rundeck_options_group: "rundeck-gh"
+
+github_rundeck_options_bin_path: "/usr/local/bin/github-rundeck-options"
+github_rundeck_options_config_dir: "/etc/github-rundeck-options"
+github_rundeck_options_config_path: "{{ github_rundeck_options_config_dir }}/config.json"
+
+# Source options:
+# 1. Local pre-built binary path on Ansible controller (e.g., dist/github-rundeck-options-linux-amd64)
+# 2. Remote download URL (if binary_local_path is empty)
+github_rundeck_options_binary_local_path: ""
+github_rundeck_options_binary_url: ""
+github_rundeck_options_binary_checksum: ""
+
+# Application configuration
+github_rundeck_options_token: ""
+github_rundeck_options_org: ""
+github_rundeck_options_listen_addr: ":8080"
+github_rundeck_options_cache_ttl_seconds: 300
+github_rundeck_options_port: 8080
+
+# Service & Firewall management
+github_rundeck_options_service_enabled: true
+github_rundeck_options_service_state: "started"
+github_rundeck_options_manage_firewall: false
