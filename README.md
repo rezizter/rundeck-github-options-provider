@@ -87,6 +87,83 @@ The role at <ark>deploy/ansible/roles/github_rundeck_options</mark> installs the
 * Ubuntu 22.04 (Jammy) & Ubuntu 24.04 (Noble)
 * Debian 12 (Bookworm)
 
+### 1. Install Required Ansible Collections
+Install the firewall collections if you plan to enable github_rundeck_options_manage_firewall:
+```bash
+ansible-galaxy collection install ansible.posix community.general
+```
+
+### 2. Example Playbook <mark>(deploy/ansible/site.yml)</mark>
+```bash
+---
+- name: Deploy Rundeck GitHub Options Provider
+  hosts: rundeck_helpers
+  become: true
+
+  vars:
+    arch_map:
+      x86_64: amd64
+      aarch64: arm64
+      arm64: arm64
+    target_goarch: "{{ arch_map[ansible_architecture] | default('amd64') }}"
+    local_binary_path: "{{ playbook_dir }}/../../dist/github-rundeck-options-linux-{{ target_goarch }}"
+
+  pre_tasks:
+    - name: Cross-compile static Linux binary on Ansible controller
+      ansible.builtin.command:
+        cmd: >
+          go build -trimpath -ldflags="-s -w"
+          -o {{ local_binary_path }}
+          main.go
+        chdir: "{{ playbook_dir }}/../.."
+      environment:
+        CGO_ENABLED: "0"
+        GOOS: "linux"
+        GOARCH: "{{ target_goarch }}"
+      delegate_to: localhost
+      become: false
+      throttle: 1
+      changed_when: true
+
+  roles:
+    - role: github_rundeck_options
+      vars:
+        github_rundeck_options_binary_local_path: "{{ local_binary_path }}"
+        github_rundeck_options_token: "{{ vault_github_token }}"
+        github_rundeck_options_org: "my-github-org"
+        github_rundeck_options_listen_addr: "0.0.0.0:8080"
+        github_rundeck_options_cache_ttl_seconds: 300
+        github_rundeck_options_manage_firewall: true
+```
+
+Run the playbook:
+```bash
+ANSIBLE_ROLES_PATH=deploy/ansible/roles ansible-playbook -i inventory.ini deploy/ansible/site.yml
+```
+
+## Role Variables (defaults/main.yml)
+| Variable 				   | Default	   | Description 								|
+| :--------------------------------------- | :-----------: | -------------------------------------------------------------------------: |
+| github_rundeck_options_token		   | "" (Required) | GitHub PAT with read:org permission (written with no_log: true).		|
+| github_rundeck_options_org		   | "" (Required) | GitHub organization login name.						|
+| github_rundeck_options_binary_local_path | ""		   | Path to a pre-built binary on the Ansible controller.			|
+| github_rundeck_options_binary_url	   | ""            | Remote URL to download the binary from if binary_local_path is empty.	|
+| github_rundeck_options_binary_checksum   | ""            | Optional checksum (e.g. sha256:...) when using binary_url.			|
+| github_rundeck_options_listen_addr	   | ":8080"	   | Interface and port the HTTP server binds to.				|
+| github_rundeck_options_port		   | 8080	   | TCP port opened when manage_firewall is enabled.				|
+| github_rundeck_options_cache_ttl_seconds | 300	   | Background refresh interval from GitHub API in seconds.			|
+| github_rundeck_options_manage_firewall   | false	   | Automatically open the port in firewalld (RedHat) or ufw (Debian/Ubuntu).	|
+| github_rundeck_options_user		   | "rundeck-gh"  | Dedicated non-login system user running the daemon.			|
+
+### Running Molecule Tests Locally
+```bash
+pip install -r deploy/ansible/requirements.txt
+cd deploy/ansible/roles/github_rundeck_options
+
+# Test default distro (rockylinux9) or specify any supported target
+MOLECULE_DISTRO=debian12 MOLECULE_DOCKER_COMMAND=/lib/systemd/systemd molecule test
+```
+
 ## HTTP Endpoints
 
 | Method  | Path              | Description 																     |
