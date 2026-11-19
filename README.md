@@ -153,6 +153,7 @@ ANSIBLE_ROLES_PATH=deploy/ansible/roles ansible-playbook -i inventory.ini deploy
 | github_rundeck_options_cache_ttl_seconds | 300	   | Background refresh interval from GitHub API in seconds.			|
 | github_rundeck_options_manage_firewall   | false	   | Automatically open the port in firewalld (RedHat) or ufw (Debian/Ubuntu).	|
 | github_rundeck_options_user		   | "rundeck-gh"  | Dedicated non-login system user running the daemon.			|
+| github_rundeck_options		   | "../../"  	   | Sets the Directory where the software main.go is found.			|
 
 ### Running Molecule Tests Locally
 ```bash
