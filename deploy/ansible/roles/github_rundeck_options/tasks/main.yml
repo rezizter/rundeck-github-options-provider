@@ -91,7 +91,7 @@
 
 - name: Copy source files from controller to target machine
   ansible.builtin.copy:
-    src: "{{ playbook_dir }}/../../{{ item }}"
+    src: "{{ github_rundeck_options_source_dir }}/{{ item }}"
     dest: "/tmp/github-rundeck-options-build/{{ item }}"
     owner: root
     group: root
