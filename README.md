@@ -93,7 +93,26 @@ Install the firewall collections if you plan to enable github_rundeck_options_ma
 ansible-galaxy collection install ansible.posix community.general
 ```
 
-### 2. Example Playbook <mark>(deploy/ansible/site.yml)</mark>
+### 2. Install the role
+Add the role to your `requirements.yml` file:
+
+```yaml
+---
+roles:
+  - name: github_rundeck_options
+    src: https://github.com/rezizter/undeck-github-options-provider.git
+    version: main
+```
+
+Install it using `ansible-galaxy`:
+
+```bash
+ansible-galaxy install -r requirements.yml
+```
+
+*(Alternatively, place the role directory directly inside your project's `roles/github_rundeck_options/` folder.)*
+
+### 3. Example Playbook <mark>(deploy/ansible/site.yml)</mark>
 You can build the binary natively directly on the target machines (`github_rundeck_options_build_on_target: true`), cross-compile on the controller, or download from a remote URL.
 
 ```yaml
