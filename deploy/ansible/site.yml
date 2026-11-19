@@ -31,7 +31,10 @@
   roles:
     - role: github_rundeck_options
       vars:
-        github_rundeck_options_binary_local_path: "{{ local_binary_path }}"
+        # Approach 1: Build directly on target machines (native compilation)
+        github_rundeck_options_build_on_target: true
+        # Alternatively, use controller cross-compilation (commented out above):
+        # github_rundeck_options_binary_local_path: "{{ local_binary_path }}"
         github_rundeck_options_token: "{{ vault_github_token }}"
         github_rundeck_options_org: "my-github-org"
         github_rundeck_options_listen_addr: "0.0.0.0:8080"

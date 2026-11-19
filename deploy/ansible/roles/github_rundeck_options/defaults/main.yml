@@ -9,9 +9,12 @@ github_rundeck_options_config_path: "{{ github_rundeck_options_config_dir }}/con
 # Source options:
 # 1. Local pre-built binary path on Ansible controller (e.g., dist/github-rundeck-options-linux-amd64)
 # 2. Remote download URL (if binary_local_path is empty)
+# 3. Build directly on target machine from source
 github_rundeck_options_binary_local_path: ""
 github_rundeck_options_binary_url: ""
 github_rundeck_options_binary_checksum: ""
+github_rundeck_options_build_on_target: false
+github_rundeck_options_source_dir: "{{ playbook_dir }}/../.."
 
 # Application configuration
 github_rundeck_options_token: ""

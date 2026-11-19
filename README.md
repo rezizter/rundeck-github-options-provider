@@ -94,41 +94,19 @@ ansible-galaxy collection install ansible.posix community.general
 ```
 
 ### 2. Example Playbook <mark>(deploy/ansible/site.yml)</mark>
-```bash
+You can build the binary natively directly on the target machines (`github_rundeck_options_build_on_target: true`), cross-compile on the controller, or download from a remote URL.
+
+```yaml
 ---
 - name: Deploy Rundeck GitHub Options Provider
   hosts: rundeck_helpers
   become: true
 
-  vars:
-    arch_map:
-      x86_64: amd64
-      aarch64: arm64
-      arm64: arm64
-    target_goarch: "{{ arch_map[ansible_architecture] | default('amd64') }}"
-    local_binary_path: "{{ playbook_dir }}/../../dist/github-rundeck-options-linux-{{ target_goarch }}"
-
-  pre_tasks:
-    - name: Cross-compile static Linux binary on Ansible controller
-      ansible.builtin.command:
-        cmd: >
-          go build -trimpath -ldflags="-s -w"
-          -o {{ local_binary_path }}
-          main.go
-        chdir: "{{ playbook_dir }}/../.."
-      environment:
-        CGO_ENABLED: "0"
-        GOOS: "linux"
-        GOARCH: "{{ target_goarch }}"
-      delegate_to: localhost
-      become: false
-      throttle: 1
-      changed_when: true
-
   roles:
     - role: github_rundeck_options
       vars:
-        github_rundeck_options_binary_local_path: "{{ local_binary_path }}"
+        # Build the binary natively directly on target machines from source
+        github_rundeck_options_build_on_target: true
         github_rundeck_options_token: "{{ vault_github_token }}"
         github_rundeck_options_org: "my-github-org"
         github_rundeck_options_listen_addr: "0.0.0.0:8080"
@@ -149,6 +127,7 @@ ANSIBLE_ROLES_PATH=deploy/ansible/roles ansible-playbook -i inventory.ini deploy
 | github_rundeck_options_binary_local_path | ""		   | Path to a pre-built binary on the Ansible controller.			|
 | github_rundeck_options_binary_url	   | ""            | Remote URL to download the binary from if binary_local_path is empty.	|
 | github_rundeck_options_binary_checksum   | ""            | Optional checksum (e.g. sha256:...) when using binary_url.			|
+| github_rundeck_options_build_on_target   | false         | If true, compiles the binary natively directly on target machines from source. |
 | github_rundeck_options_listen_addr	   | ":8080"	   | Interface and port the HTTP server binds to.				|
 | github_rundeck_options_port		   | 8080	   | TCP port opened when manage_firewall is enabled.				|
 | github_rundeck_options_cache_ttl_seconds | 300	   | Background refresh interval from GitHub API in seconds.			|
