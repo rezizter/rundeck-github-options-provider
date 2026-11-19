@@ -139,6 +139,11 @@ Run the playbook:
 ANSIBLE_ROLES_PATH=deploy/ansible/roles ansible-playbook -i inventory.ini deploy/ansible/site.yml
 ```
 
+### 4. Test deploment on the target server
+```bash
+curl http://localhost:8080/options/members | jq .
+```
+
 ## Role Variables (defaults/main.yml)
 | Variable 				   | Default	   | Description 								|
 | :--------------------------------------- | :-----------: | -------------------------------------------------------------------------: |
