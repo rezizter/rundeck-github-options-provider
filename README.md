@@ -131,6 +131,7 @@ You can build the binary natively directly on the target machines (`github_runde
         github_rundeck_options_listen_addr: "0.0.0.0:8080"
         github_rundeck_options_cache_ttl_seconds: 300
         github_rundeck_options_manage_firewall: true
+        github_rundeck_options_source_dir: "github_rundeck_options"
 ```
 
 Run the playbook:
